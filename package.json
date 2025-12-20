@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cờ Vua Siêu Quậy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Inter:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .title-font { font-family: 'Bungee', cursive; }
+
+        /* Đảm bảo bàn cờ luôn vuông và các ô bằng nhau */
+        .board-container {
+            width 100%;
+            max-width: 500px;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto;
+        }
+
+        .chess-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 100%;
+            height: 100%;
+            border: 8px solid #333;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .square {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.2s;
+        }
+
+        .square.light { background-color: #ebecd0; color: #779556; }
+        .square.dark { background-color: #779556; color: #ebecd0; }
+        .square.selected { background-color: #f6f669 !important; }
+
+        .piece {
+            font-size: clamp(1.5rem, 8vw, 2.5rem);
+            z-index: 10;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            user-select: none;
+        }
+
+        .piece.invisible { opacity: 0; }
+
+        .emoji-popup {
+            position: absolute;
+            animation: floatUp 1s ease-out forwards;
+            font-size: 2.5rem;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
+        }
+
+        .card-active {
+            border: 3px solid #fbbf24 !important;
+            box-shadow: 0 0 15px #fbbf24;
+            transform: scale(1.05);
+        }
+
+        .lobby-panel { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- LOBBY SYSTEM -->
+    <div id="lobby" class="lobby-panel fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 p-8 rounded-3xl shadow-2xl max-w-md w-full border-4 border-yellow-500 text-center">
+            <h1 class="title-font text-3xl text-yellow-500 mb-6">CỜ VUA SIÊU QUẬY</h1>
+            
+            <div class="space-y-6 text-left">
+                <div>
+                    <label class="block text-sm font-bold mb-2 uppercase text-gray-400">Chế độ chấp quân (Trắng)</label>
+                    <div class="flex gap-2">
+                        <button onclick="toggleHandicap('none')" id="h-none" class="flex-1 py-3 bg-slate-700 rounded-xl border-2 border-yellow-500">Bình Thường</button>
+                        <button onclick="toggleHandicap('knight')" id="h-knight" class="flex-1 py-3 bg-slate-700 rounded-xl border-2 border-transparent">Chấp Mã</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold mb-2 uppercase text-gray-400">Đồng hồ (Phút)</label>
+                    <div class="flex items-center gap-4 bg-slate-700 p-4 rounded-xl">
+                        <div class="flex-1 text-center">
+                            <span class="text-xs text-gray-400">TRẮNG</span>
+                            <input type="number" id="time-white-input" value="5" min="1" class="w-full bg-transparent text-center font-bold text-2xl outline-none text-white">
+                        </div>
+                        <div class="text-yellow-500 font-bold">VS</div>
+                        <div class="flex-1 text-center">
+                            <span class="text-xs text-gray-400">ĐEN</span>
+                            <input type="number" id="time-black-input" value="10" min="1" class="w-full bg-transparent text-center font-bold text-2xl outline-none text-white">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between bg-slate-700 p-4 rounded-xl">
+                    <span class="font-bold uppercase text-sm">Xáo trộn hàng 1</span>
+                    <input type="checkbox" id="shuffle-mode" class="w-6 h-6 accent-yellow-500">
+                </div>
+
+                <button onclick="startGame()" class="w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-slate-900 title-font text-2xl rounded-2xl transition-all shadow-lg active:scale-95">
+                    VÀO TRẬN!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME UI -->
+    <div id="game-ui" class="hidden w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <!-- Player Black -->
+        <div class="lg:col-span-3 flex flex-col justify-between h-full py-4 order-2 lg:order-1">
+            <div class="bg-slate-800 p-4 rounded-2xl shadow-xl border-b-4 border-red-500">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="font-bold text-gray-400 text-xs uppercase">Đối phương (Đen)</span>
+                    <span id="timer-black" class="text-2xl font-mono text-red-400 font-bold tracking-tighter">10:00</span>
+                </div>
+                <div class="flex gap-3">
+                    <div class="w-12 h-12 bg-slate-600 rounded-full flex items-center justify-center text-2xl">😈</div>
+                    <div class="flex-1 h-3 bg-slate-700 rounded-full mt-5 overflow-hidden">
+                        <div id="hp-black" class="w-full h-full bg-red-500 transition-all duration-300"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 space-y-4">
+                <h3 class="title-font text-yellow-500 text-center tracking-widest">KHO SIÊU QUẬY</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="useCard('stealth')" id="btn-stealth" class="p-3 bg-indigo-600 rounded-xl hover:bg-indigo-500 transition shadow-lg flex flex-col items-center border-2 border-transparent">
+                        <span class="text-2xl">👤</span>
+                        <span class="text-[10px] mt-1 font-bold uppercase">Tàng Hình</span>
+                    </button>
+                    <button onclick="useCard('swap')" id="btn-swap" class="p-3 bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-lg flex flex-col items-center border-2 border-transparent">
+                        <span class="text-2xl">🔄</span>
+                        <span class="text-[10px] mt-1 font-bold uppercase">Hoán Đổi</span>
+                    </button>
+                </div>
+                <div class="grid grid-cols-4 gap-2 bg-slate-800 p-2 rounded-xl">
+                    <button onclick="sendEmoji('🤡')" class="text-2xl hover:scale-125 transition">🤡</button>
+                    <button onclick="sendEmoji('🤣')" class="text-2xl hover:scale-125 transition">🤣</button>
+                    <button onclick="sendEmoji('🤫')" class="text-2xl hover:scale-125 transition">🤫</button>
+                    <button onclick="sendEmoji('💩')" class="text-2xl hover:scale-125 transition">💩</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Board -->
+        <div class="lg:col-span-6 flex flex-col items-center order-1 lg:order-2">
+            <div class="board-container">
+                <div id="board" class="chess-board"></div>
+            </div>
+            <div class="mt-4 flex gap-8 items-center bg-slate-800 px-8 py-3 rounded-full border border-slate-700 shadow-xl">
+                <div class="flex items-center gap-2">
+                    <span class="text-yellow-500">💰</span>
+                    <span id="pot-gold" class="font-bold">200 Vàng</span>
+                </div>
+                <div class="h-4 w-px bg-slate-600"></div>
+                <div id="turn-indicator" class="font-bold text-yellow-500 uppercase tracking-widest text-sm">Lượt: Trắng</div>
+            </div>
+        </div>
+
+        <!-- Player White -->
+        <div class="lg:col-span-3 flex flex-col justify-end h-full py-4 order-3">
+            <div class="bg-slate-800 p-4 rounded-2xl shadow-xl border-t-4 border-yellow-500">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="font-bold text-yellow-500 text-xs uppercase">Bạn (Trắng)</span>
+                    <span id="timer-white" class="text-2xl font-mono text-green-400 font-bold tracking-tighter">05:00</span>
+                </div>
+                <div class="flex gap-3">
+                    <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center text-2xl text-slate-900 font-bold">😎</div>
+                    <div class="flex-1 h-3 bg-slate-700 rounded-full mt-5 overflow-hidden">
+                        <div id="hp-white" class="w-full h-full bg-green-500 transition-all duration-300"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Kết Thúc -->
+    <div id="end-modal" class="hidden fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4">
+        <div class="bg-slate-800 p-8 rounded-3xl border-4 border-yellow-500 max-w-sm w-full text-center">
+            <h2 id="winner-text" class="title-font text-4xl text-yellow-500 mb-2">BẠN THẮNG!</h2>
+            <p class="text-gray-400 mb-6 uppercase text-xs font-bold">Phần thưởng: <span class="text-yellow-500 font-bold">200 Vàng</span></p>
+            
+            <div class="space-y-3 mb-8">
+                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Tặng quà an ủi đối phương?</p>
+                <div class="flex gap-2">
+                    <button onclick="location.reload()" class="flex-1 py-3 bg-slate-700 rounded-xl hover:bg-slate-600 text-xs font-bold transition-all">
+                        ☕ CAFÉ (-50v)
+                    </button>
+                    <button onclick="location.reload()" class="flex-1 py-3 bg-slate-700 rounded-xl hover:bg-slate-600 text-xs font-bold transition-all">
+                        🌹 HOA (-20v)
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="location.reload()" class="w-full py-4 bg-yellow-500 text-slate-900 title-font rounded-2xl text-xl hover:bg-yellow-400 transition-transform active:scale-95">
+                CHƠI LẠI
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const PIECES = {
+            'w-r': '♖', 'w-n': '♘', 'w-b': '♗', 'w-q': '♕', 'w-k': '♔', 'w-p': '♙',
+            'b-r': '♜', 'b-n': '♞', 'b-b': '♝', 'b-q': '♛', 'b-k': '♚', 'b-p': '♟'
+        };
+
+        let gameState = {
+            board: [],
+            selected: null,
+            turn: 'white',
+            timers: { white: 300, black: 600 },
+            initialTimes: { white: 300, black: 600 },
+            activeCard: null,
+            stealthPiece: null,
+            handicap: 'none',
+            shuffle: false,
+            isGameOver: false,
+            timerInterval: null
+        };
+
+        const boardEl = document.getElementById('board');
+
+        function initBoard() {
+            let layout = [
+                ['b-r', 'b-n', 'b-b', 'b-q', 'b-k', 'b-b', 'b-n', 'b-r'],
+                ['b-p', 'b-p', 'b-p', 'b-p', 'b-p', 'b-p', 'b-p', 'b-p'],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                ['w-p', 'w-p', 'w-p', 'w-p', 'w-p', 'w-p', 'w-p', 'w-p'],
+                ['w-r', 'w-n', 'w-b', 'w-q', 'w-k', 'w-b', 'w-n', 'w-r']
+            ];
+
+            if(gameState.handicap === 'knight') {
+                layout[7][1] = null;
+                layout[7][6] = null;
+            }
+
+            if(gameState.shuffle) {
+                const backRow = ['w-r', 'w-n', 'w-b', 'w-q', 'w-k', 'w-b', 'w-n', 'w-r'];
+                layout[7] = [...backRow].sort(() => Math.random() - 0.5);
+                const blackBackRow = ['b-r', 'b-n', 'b-b', 'b-q', 'b-k', 'b-b', 'b-n', 'b-r'];
+                layout[0] = [...blackBackRow].sort(() => Math.random() - 0.5);
+            }
+
+            gameState.board = layout;
+            renderBoard();
+        }
+
+        function renderBoard() {
+            boardEl.innerHTML = '';
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const square = document.createElement('div');
+                    square.className = `square ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
+                    
+                    const pieceKey = gameState.board[r][c];
+                    if (pieceKey) {
+                        const piece = document.createElement('span');
+                        piece.className = 'piece';
+                        piece.innerText = PIECES[pieceKey];
+                        
+                        // Logic tàng hình
+                        if (gameState.stealthPiece && gameState.stealthPiece.r === r && gameState.stealthPiece.c === c) {
+                             if (gameState.turn !== (pieceKey.startsWith('w') ? 'white' : 'black')) {
+                                piece.classList.add('invisible');
+                             }
+                        }
+
+                        square.appendChild(piece);
+                    }
+
+                    if (gameState.selected && gameState.selected.r === r && gameState.selected.c === c) {
+                        square.classList.add('selected');
+                    }
+
+                    square.onclick = () => handleSquareClick(r, c);
+                    boardEl.appendChild(square);
+                }
+            }
+        }
+
+        function handleSquareClick(r, c) {
+            if(gameState.isGameOver) return;
+
+            const clickedPiece = gameState.board[r][c];
+            const isMyPiece = clickedPiece && clickedPiece.startsWith(gameState.turn === 'white' ? 'w' : 'b');
+
+            if (gameState.activeCard === 'swap') {
+                if (isMyPiece && (clickedPiece.endsWith('-p') || clickedPiece.endsWith('-k'))) {
+                    executeSwap(r, c);
+                    return;
+                }
+            }
+
+            if (isMyPiece) {
+                gameState.selected = { r, c };
+                if (gameState.activeCard === 'stealth') {
+                    gameState.stealthPiece = { r, c };
+                    gameState.activeCard = null;
+                    document.getElementById('btn-stealth').classList.remove('card-active');
+                    showToast("👤 Đã kích hoạt Tàng Hình!");
+                }
+            } else if (gameState.selected) {
+                const targetPiece = gameState.board[r][c];
+                if (targetPiece && targetPiece.endsWith('-k')) {
+                    endGame(gameState.turn);
+                }
+                
+                gameState.board[r][c] = gameState.board[gameState.selected.r][gameState.selected.c];
+                gameState.board[gameState.selected.r][gameState.selected.c] = null;
+                
+                if(gameState.stealthPiece && gameState.stealthPiece.r === gameState.selected.r && gameState.stealthPiece.c === gameState.selected.c) {
+                    gameState.stealthPiece = {r, c};
+                }
+
+                gameState.selected = null;
+                gameState.turn = gameState.turn === 'white' ? 'black' : 'white';
+                document.getElementById('turn-indicator').innerText = `Lượt: ${gameState.turn === 'white' ? 'Trắng' : 'Đen'}`;
+            }
+            renderBoard();
+        }
+
+        function executeSwap(r, c) {
+            let kingPos = null;
+            const prefix = gameState.turn === 'white' ? 'w' : 'b';
+            for(let i=0; i<8; i++) {
+                for(let j=0; j<8; j++) {
+                    if(gameState.board[i][j] === prefix + '-k') kingPos = {i, j};
+                }
+            }
+            
+            const temp = gameState.board[r][c];
+            gameState.board[r][c] = gameState.board[kingPos.i][kingPos.j];
+            gameState.board[kingPos.i][kingPos.j] = temp;
+
+            gameState.activeCard = null;
+            document.getElementById('btn-swap').classList.remove('card-active');
+            showToast("🔄 Hoán đổi thành công!");
+            renderBoard();
+        }
+
+        function toggleHandicap(type) {
+            gameState.handicap = type;
+            document.getElementById('h-none').classList.toggle('border-yellow-500', type === 'none');
+            document.getElementById('h-none').classList.toggle('border-transparent', type !== 'none');
+            document.getElementById('h-knight').classList.toggle('border-yellow-500', type === 'knight');
+            document.getElementById('h-knight').classList.toggle('border-transparent', type !== 'knight');
+        }
+
+        function startGame() {
+            const wTime = parseInt(document.getElementById('time-white-input').value);
+            const bTime = parseInt(document.getElementById('time-black-input').value);
+            
+            gameState.timers.white = wTime * 60;
+            gameState.timers.black = bTime * 60;
+            gameState.initialTimes.white = wTime * 60;
+            gameState.initialTimes.black = bTime * 60;
+            
+            gameState.shuffle = document.getElementById('shuffle-mode').checked;
+
+            document.getElementById('lobby').classList.add('hidden');
+            document.getElementById('game-ui').classList.remove('hidden');
+            
+            updateTimerDisplay();
+            initBoard();
+            startTimer();
+        }
+
+        function startTimer() {
+            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+            
+            gameState.timerInterval = setInterval(() => {
+                if(gameState.isGameOver) return;
+                
+                gameState.timers[gameState.turn]--;
+                updateTimerDisplay();
+
+                // Cập nhật thanh máu (HP)
+                const currentTurn = gameState.turn;
+                const percent = (gameState.timers[currentTurn] / gameState.initialTimes[currentTurn]) * 100;
+                document.getElementById(`hp-${currentTurn}`).style.width = percent + '%';
+
+                if(gameState.timers[gameState.turn] <= 0) {
+                    endGame(gameState.turn === 'white' ? 'black' : 'white');
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const format = (s) => {
+                const min = Math.floor(s / 60);
+                const sec = s % 60;
+                return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+            };
+            document.getElementById('timer-white').innerText = format(gameState.timers.white);
+            document.getElementById('timer-black').innerText = format(gameState.timers.black);
+        }
+
+        function useCard(type) {
+            gameState.activeCard = type;
+            document.getElementById('btn-stealth').classList.remove('card-active');
+            document.getElementById('btn-swap').classList.remove('card-active');
+            document.getElementById(`btn-${type}`).classList.add('card-active');
+            showToast(`Hãy chọn quân cờ để ${type === 'stealth' ? 'Tàng Hình' : 'Hoán Đổi'}`);
+        }
+
+        function sendEmoji(emoji) {
+            const container = document.body;
+            const el = document.createElement('div');
+            el.className = 'emoji-popup';
+            el.innerText = emoji;
+            el.style.left = '50%';
+            el.style.top = '50%';
+            container.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-yellow-500 text-slate-900 px-6 py-2 rounded-full font-bold z-[200] animate-bounce text-sm shadow-xl';
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+
+        function endGame(winner) {
+            gameState.isGameOver = true;
+            clearInterval(gameState.timerInterval);
+            document.getElementById('end-modal').classList.remove('hidden');
+            document.getElementById('winner-text').innerText = winner === 'white' ? 'BẠN THẮNG!' : 'ĐỐI PHƯƠNG THẮNG!';
+        }
+    </script>
+</body>
+</html>
