@@ -18,9 +18,8 @@
 
         .title-font { font-family: 'Bungee', cursive; }
 
-        /* Đảm bảo bàn cờ luôn vuông và các ô bằng nhau */
         .board-container {
-            width 100%;
+            width: 100%;
             max-width: 500px;
             aspect-ratio: 1 / 1;
             margin: 0 auto;
@@ -92,10 +91,10 @@
             
             <div class="space-y-6 text-left">
                 <div>
-                    <label class="block text-sm font-bold mb-2 uppercase text-gray-400">Chế độ chấp quân (Trắng)</label>
+                    <label class="block text-sm font-bold mb-2 uppercase text-gray-400">Chế độ chơi</label>
                     <div class="flex gap-2">
-                        <button onclick="toggleHandicap('none')" id="h-none" class="flex-1 py-3 bg-slate-700 rounded-xl border-2 border-yellow-500">Bình Thường</button>
-                        <button onclick="toggleHandicap('knight')" id="h-knight" class="flex-1 py-3 bg-slate-700 rounded-xl border-2 border-transparent">Chấp Mã</button>
+                        <button onclick="toggleMode('pvp')" id="mode-pvp" class="flex-1 py-3 bg-slate-700 rounded-xl border-2 border-yellow-500 font-bold">Người vs Người</button>
+                        <button onclick="toggleMode('pve')" id="mode-pve" class="flex-1 py-3 bg-slate-700 rounded-xl border-2 border-transparent font-bold">Đấu với Robot</button>
                     </div>
                 </div>
 
@@ -103,24 +102,24 @@
                     <label class="block text-sm font-bold mb-2 uppercase text-gray-400">Đồng hồ (Phút)</label>
                     <div class="flex items-center gap-4 bg-slate-700 p-4 rounded-xl">
                         <div class="flex-1 text-center">
-                            <span class="text-xs text-gray-400">TRẮNG</span>
+                            <span class="text-xs text-gray-400">BẠN</span>
                             <input type="number" id="time-white-input" value="5" min="1" class="w-full bg-transparent text-center font-bold text-2xl outline-none text-white">
                         </div>
                         <div class="text-yellow-500 font-bold">VS</div>
                         <div class="flex-1 text-center">
-                            <span class="text-xs text-gray-400">ĐEN</span>
+                            <span id="opponent-label" class="text-xs text-gray-400">ĐỐI THỦ</span>
                             <input type="number" id="time-black-input" value="10" min="1" class="w-full bg-transparent text-center font-bold text-2xl outline-none text-white">
                         </div>
                     </div>
                 </div>
 
                 <div class="flex items-center justify-between bg-slate-700 p-4 rounded-xl">
-                    <span class="font-bold uppercase text-sm">Xáo trộn hàng 1</span>
+                    <span class="font-bold uppercase text-sm">Xáo trộn bàn cờ</span>
                     <input type="checkbox" id="shuffle-mode" class="w-6 h-6 accent-yellow-500">
                 </div>
 
                 <button onclick="startGame()" class="w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-slate-900 title-font text-2xl rounded-2xl transition-all shadow-lg active:scale-95">
-                    VÀO TRẬN!
+                    BẮT ĐẦU!
                 </button>
             </div>
         </div>
@@ -128,15 +127,15 @@
 
     <!-- GAME UI -->
     <div id="game-ui" class="hidden w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        <!-- Player Black -->
+        <!-- Player Black (Robot or P2) -->
         <div class="lg:col-span-3 flex flex-col justify-between h-full py-4 order-2 lg:order-1">
             <div class="bg-slate-800 p-4 rounded-2xl shadow-xl border-b-4 border-red-500">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="font-bold text-gray-400 text-xs uppercase">Đối phương (Đen)</span>
+                    <span id="player-black-name" class="font-bold text-gray-400 text-xs uppercase">Robot (Đen)</span>
                     <span id="timer-black" class="text-2xl font-mono text-red-400 font-bold tracking-tighter">10:00</span>
                 </div>
                 <div class="flex gap-3">
-                    <div class="w-12 h-12 bg-slate-600 rounded-full flex items-center justify-center text-2xl">😈</div>
+                    <div id="opponent-avatar" class="w-12 h-12 bg-slate-600 rounded-full flex items-center justify-center text-2xl">🤖</div>
                     <div class="flex-1 h-3 bg-slate-700 rounded-full mt-5 overflow-hidden">
                         <div id="hp-black" class="w-full h-full bg-red-500 transition-all duration-300"></div>
                     </div>
@@ -154,12 +153,6 @@
                         <span class="text-2xl">🔄</span>
                         <span class="text-[10px] mt-1 font-bold uppercase">Hoán Đổi</span>
                     </button>
-                </div>
-                <div class="grid grid-cols-4 gap-2 bg-slate-800 p-2 rounded-xl">
-                    <button onclick="sendEmoji('🤡')" class="text-2xl hover:scale-125 transition">🤡</button>
-                    <button onclick="sendEmoji('🤣')" class="text-2xl hover:scale-125 transition">🤣</button>
-                    <button onclick="sendEmoji('🤫')" class="text-2xl hover:scale-125 transition">🤫</button>
-                    <button onclick="sendEmoji('💩')" class="text-2xl hover:scale-125 transition">💩</button>
                 </div>
             </div>
         </div>
@@ -179,7 +172,7 @@
             </div>
         </div>
 
-        <!-- Player White -->
+        <!-- Player White (User) -->
         <div class="lg:col-span-3 flex flex-col justify-end h-full py-4 order-3">
             <div class="bg-slate-800 p-4 rounded-2xl shadow-xl border-t-4 border-yellow-500">
                 <div class="flex items-center justify-between mb-2">
@@ -200,23 +193,8 @@
     <div id="end-modal" class="hidden fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4">
         <div class="bg-slate-800 p-8 rounded-3xl border-4 border-yellow-500 max-w-sm w-full text-center">
             <h2 id="winner-text" class="title-font text-4xl text-yellow-500 mb-2">BẠN THẮNG!</h2>
-            <p class="text-gray-400 mb-6 uppercase text-xs font-bold">Phần thưởng: <span class="text-yellow-500 font-bold">200 Vàng</span></p>
-            
-            <div class="space-y-3 mb-8">
-                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Tặng quà an ủi đối phương?</p>
-                <div class="flex gap-2">
-                    <button onclick="location.reload()" class="flex-1 py-3 bg-slate-700 rounded-xl hover:bg-slate-600 text-xs font-bold transition-all">
-                        ☕ CAFÉ (-50v)
-                    </button>
-                    <button onclick="location.reload()" class="flex-1 py-3 bg-slate-700 rounded-xl hover:bg-slate-600 text-xs font-bold transition-all">
-                        🌹 HOA (-20v)
-                    </button>
-                </div>
-            </div>
-
-            <button onclick="location.reload()" class="w-full py-4 bg-yellow-500 text-slate-900 title-font rounded-2xl text-xl hover:bg-yellow-400 transition-transform active:scale-95">
-                CHƠI LẠI
-            </button>
+            <p id="reward-text" class="text-gray-400 mb-6 uppercase text-xs font-bold">Phần thưởng: <span class="text-yellow-500 font-bold">200 Vàng</span></p>
+            <button onclick="location.reload()" class="w-full py-4 bg-yellow-500 text-slate-900 title-font rounded-2xl text-xl hover:bg-yellow-400 transition-transform active:scale-95">CHƠI LẠI</button>
         </div>
     </div>
 
@@ -230,17 +208,28 @@
             board: [],
             selected: null,
             turn: 'white',
+            mode: 'pvp', // pvp hoặc pve
             timers: { white: 300, black: 600 },
             initialTimes: { white: 300, black: 600 },
             activeCard: null,
             stealthPiece: null,
-            handicap: 'none',
             shuffle: false,
             isGameOver: false,
             timerInterval: null
         };
 
         const boardEl = document.getElementById('board');
+
+        function toggleMode(m) {
+            gameState.mode = m;
+            document.getElementById('mode-pvp').classList.toggle('border-yellow-500', m === 'pvp');
+            document.getElementById('mode-pvp').classList.toggle('border-transparent', m !== 'pvp');
+            document.getElementById('mode-pve').classList.toggle('border-yellow-500', m === 'pve');
+            document.getElementById('mode-pve').classList.toggle('border-transparent', m !== 'pve');
+            document.getElementById('opponent-label').innerText = m === 'pve' ? 'ROBOT' : 'ĐỐI THỦ';
+            document.getElementById('player-black-name').innerText = m === 'pve' ? 'Robot (Đen)' : 'Đối thủ (Đen)';
+            document.getElementById('opponent-avatar').innerText = m === 'pve' ? '🤖' : '😈';
+        }
 
         function initBoard() {
             let layout = [
@@ -254,16 +243,10 @@
                 ['w-r', 'w-n', 'w-b', 'w-q', 'w-k', 'w-b', 'w-n', 'w-r']
             ];
 
-            if(gameState.handicap === 'knight') {
-                layout[7][1] = null;
-                layout[7][6] = null;
-            }
-
             if(gameState.shuffle) {
-                const backRow = ['w-r', 'w-n', 'w-b', 'w-q', 'w-k', 'w-b', 'w-n', 'w-r'];
-                layout[7] = [...backRow].sort(() => Math.random() - 0.5);
-                const blackBackRow = ['b-r', 'b-n', 'b-b', 'b-q', 'b-k', 'b-b', 'b-n', 'b-r'];
-                layout[0] = [...blackBackRow].sort(() => Math.random() - 0.5);
+                const shuffleRow = (row) => row.sort(() => Math.random() - 0.5);
+                layout[0] = shuffleRow(layout[0]);
+                layout[7] = shuffleRow(layout[7]);
             }
 
             gameState.board = layout;
@@ -289,7 +272,6 @@
                                 piece.classList.add('invisible');
                              }
                         }
-
                         square.appendChild(piece);
                     }
 
@@ -303,17 +285,60 @@
             }
         }
 
+        function isValidMove(fromR, fromC, toR, toC) {
+            const piece = gameState.board[fromR][fromC];
+            if (!piece) return false;
+            const type = piece.split('-')[1];
+            const color = piece.startsWith('w') ? 'white' : 'black';
+            const target = gameState.board[toR][toC];
+            if (target && target.startsWith(piece[0])) return false;
+
+            const dr = toR - fromR;
+            const dc = toC - fromC;
+            const absDr = Math.abs(dr);
+            const absDc = Math.abs(dc);
+
+            const isPathClear = (r1, c1, r2, c2) => {
+                const stepR = Math.sign(r2 - r1);
+                const stepC = Math.sign(c2 - c1);
+                let r = r1 + stepR;
+                let c = c1 + stepC;
+                while (r !== r2 || c !== c2) {
+                    if (gameState.board[r][c]) return false;
+                    r += stepR;
+                    c += stepC;
+                }
+                return true;
+            };
+
+            switch (type) {
+                case 'p':
+                    const dir = color === 'white' ? -1 : 1;
+                    const startRow = color === 'white' ? 6 : 1;
+                    if (dc === 0 && !target) {
+                        if (dr === dir) return true;
+                        if (fromR === startRow && dr === 2 * dir && !gameState.board[fromR + dir][fromC]) return true;
+                    }
+                    if (absDc === 1 && dr === dir && target) return true;
+                    return false;
+                case 'r': return (dr === 0 || dc === 0) && isPathClear(fromR, fromC, toR, toC);
+                case 'n': return (absDr === 2 && absDc === 1) || (absDr === 1 && absDc === 2);
+                case 'b': return (absDr === absDc) && isPathClear(fromR, fromC, toR, toC);
+                case 'q': return (absDr === absDc || dr === 0 || dc === 0) && isPathClear(fromR, fromC, toR, toC);
+                case 'k': return absDr <= 1 && absDc <= 1;
+            }
+            return false;
+        }
+
         function handleSquareClick(r, c) {
-            if(gameState.isGameOver) return;
+            if(gameState.isGameOver || (gameState.mode === 'pve' && gameState.turn === 'black')) return;
 
             const clickedPiece = gameState.board[r][c];
             const isMyPiece = clickedPiece && clickedPiece.startsWith(gameState.turn === 'white' ? 'w' : 'b');
 
-            if (gameState.activeCard === 'swap') {
-                if (isMyPiece && (clickedPiece.endsWith('-p') || clickedPiece.endsWith('-k'))) {
-                    executeSwap(r, c);
-                    return;
-                }
+            if (gameState.activeCard === 'swap' && isMyPiece && (clickedPiece.endsWith('-p') || clickedPiece.endsWith('-k'))) {
+                executeSwap(r, c);
+                return;
             }
 
             if (isMyPiece) {
@@ -324,24 +349,69 @@
                     document.getElementById('btn-stealth').classList.remove('card-active');
                     showToast("👤 Đã kích hoạt Tàng Hình!");
                 }
+                renderBoard();
             } else if (gameState.selected) {
-                const targetPiece = gameState.board[r][c];
-                if (targetPiece && targetPiece.endsWith('-k')) {
-                    endGame(gameState.turn);
+                if (isValidMove(gameState.selected.r, gameState.selected.c, r, c)) {
+                    makeMove(gameState.selected.r, gameState.selected.c, r, c);
+                } else {
+                    showToast("❌ Nước đi không hợp lệ!");
+                    gameState.selected = null;
+                    renderBoard();
                 }
-                
-                gameState.board[r][c] = gameState.board[gameState.selected.r][gameState.selected.c];
-                gameState.board[gameState.selected.r][gameState.selected.c] = null;
-                
-                if(gameState.stealthPiece && gameState.stealthPiece.r === gameState.selected.r && gameState.stealthPiece.c === gameState.selected.c) {
-                    gameState.stealthPiece = {r, c};
-                }
-
-                gameState.selected = null;
-                gameState.turn = gameState.turn === 'white' ? 'black' : 'white';
-                document.getElementById('turn-indicator').innerText = `Lượt: ${gameState.turn === 'white' ? 'Trắng' : 'Đen'}`;
             }
+        }
+
+        function makeMove(fromR, fromC, toR, toC) {
+            const targetPiece = gameState.board[toR][toC];
+            if (targetPiece && targetPiece.endsWith('-k')) endGame(gameState.turn);
+            
+            gameState.board[toR][toC] = gameState.board[fromR][fromC];
+            gameState.board[fromR][fromC] = null;
+            
+            if(gameState.stealthPiece && gameState.stealthPiece.r === fromR && gameState.stealthPiece.c === fromC) {
+                gameState.stealthPiece = {r: toR, c: toC};
+            }
+
+            gameState.selected = null;
+            gameState.turn = gameState.turn === 'white' ? 'black' : 'white';
+            document.getElementById('turn-indicator').innerText = `Lượt: ${gameState.turn === 'white' ? 'Trắng' : 'Đen'}`;
             renderBoard();
+
+            if (gameState.mode === 'pve' && gameState.turn === 'black' && !gameState.isGameOver) {
+                setTimeout(robotMove, 800);
+            }
+        }
+
+        function robotMove() {
+            let moves = [];
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (gameState.board[r][c] && gameState.board[r][c].startsWith('b')) {
+                        for (let tr = 0; tr < 8; tr++) {
+                            for (let tc = 0; tc < 8; tc++) {
+                                if (isValidMove(r, c, tr, tc)) {
+                                    let weight = 1;
+                                    const target = gameState.board[tr][tc];
+                                    if (target) {
+                                        if (target.endsWith('-k')) weight = 1000;
+                                        else if (target.endsWith('-q')) weight = 9;
+                                        else weight = 3;
+                                    }
+                                    moves.push({ fromR: r, fromC: c, toR: tr, toC: tc, weight });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (moves.length > 0) {
+                // Robot ưu tiên nước ăn quân có giá trị cao
+                moves.sort((a, b) => b.weight - a.weight);
+                const bestMoves = moves.filter(m => m.weight === moves[0].weight);
+                const move = bestMoves[Math.floor(Math.random() * bestMoves.length)];
+                makeMove(move.fromR, move.fromC, move.toR, move.toC);
+            }
         }
 
         function executeSwap(r, c) {
@@ -352,39 +422,25 @@
                     if(gameState.board[i][j] === prefix + '-k') kingPos = {i, j};
                 }
             }
-            
             const temp = gameState.board[r][c];
             gameState.board[r][c] = gameState.board[kingPos.i][kingPos.j];
             gameState.board[kingPos.i][kingPos.j] = temp;
-
             gameState.activeCard = null;
             document.getElementById('btn-swap').classList.remove('card-active');
             showToast("🔄 Hoán đổi thành công!");
             renderBoard();
         }
 
-        function toggleHandicap(type) {
-            gameState.handicap = type;
-            document.getElementById('h-none').classList.toggle('border-yellow-500', type === 'none');
-            document.getElementById('h-none').classList.toggle('border-transparent', type !== 'none');
-            document.getElementById('h-knight').classList.toggle('border-yellow-500', type === 'knight');
-            document.getElementById('h-knight').classList.toggle('border-transparent', type !== 'knight');
-        }
-
         function startGame() {
-            const wTime = parseInt(document.getElementById('time-white-input').value);
-            const bTime = parseInt(document.getElementById('time-black-input').value);
-            
+            const wTime = parseInt(document.getElementById('time-white-input').value) || 5;
+            const bTime = parseInt(document.getElementById('time-black-input').value) || 10;
             gameState.timers.white = wTime * 60;
             gameState.timers.black = bTime * 60;
             gameState.initialTimes.white = wTime * 60;
             gameState.initialTimes.black = bTime * 60;
-            
             gameState.shuffle = document.getElementById('shuffle-mode').checked;
-
             document.getElementById('lobby').classList.add('hidden');
             document.getElementById('game-ui').classList.remove('hidden');
-            
             updateTimerDisplay();
             initBoard();
             startTimer();
@@ -392,21 +448,14 @@
 
         function startTimer() {
             if (gameState.timerInterval) clearInterval(gameState.timerInterval);
-            
             gameState.timerInterval = setInterval(() => {
                 if(gameState.isGameOver) return;
-                
                 gameState.timers[gameState.turn]--;
                 updateTimerDisplay();
-
-                // Cập nhật thanh máu (HP)
                 const currentTurn = gameState.turn;
                 const percent = (gameState.timers[currentTurn] / gameState.initialTimes[currentTurn]) * 100;
                 document.getElementById(`hp-${currentTurn}`).style.width = percent + '%';
-
-                if(gameState.timers[gameState.turn] <= 0) {
-                    endGame(gameState.turn === 'white' ? 'black' : 'white');
-                }
+                if(gameState.timers[gameState.turn] <= 0) endGame(gameState.turn === 'white' ? 'black' : 'white');
             }, 1000);
         }
 
@@ -421,27 +470,29 @@
         }
 
         function useCard(type) {
+            if (gameState.mode === 'pve' && gameState.turn === 'black') return;
             gameState.activeCard = type;
             document.getElementById('btn-stealth').classList.remove('card-active');
             document.getElementById('btn-swap').classList.remove('card-active');
             document.getElementById(`btn-${type}`).classList.add('card-active');
-            showToast(`Hãy chọn quân cờ để ${type === 'stealth' ? 'Tàng Hình' : 'Hoán Đổi'}`);
+            showToast(`Chọn quân để ${type === 'stealth' ? 'Tàng Hình' : 'Hoán Đổi'}`);
         }
 
         function sendEmoji(emoji) {
-            const container = document.body;
             const el = document.createElement('div');
             el.className = 'emoji-popup';
             el.innerText = emoji;
             el.style.left = '50%';
             el.style.top = '50%';
-            container.appendChild(el);
+            document.body.appendChild(el);
             setTimeout(() => el.remove(), 1000);
         }
 
         function showToast(msg) {
+            const oldToast = document.querySelector('.game-toast');
+            if(oldToast) oldToast.remove();
             const toast = document.createElement('div');
-            toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-yellow-500 text-slate-900 px-6 py-2 rounded-full font-bold z-[200] animate-bounce text-sm shadow-xl';
+            toast.className = 'game-toast fixed bottom-24 left-1/2 -translate-x-1/2 bg-yellow-500 text-slate-900 px-6 py-2 rounded-full font-bold z-[200] animate-bounce text-sm shadow-xl';
             toast.innerText = msg;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 2500);
@@ -451,7 +502,8 @@
             gameState.isGameOver = true;
             clearInterval(gameState.timerInterval);
             document.getElementById('end-modal').classList.remove('hidden');
-            document.getElementById('winner-text').innerText = winner === 'white' ? 'BẠN THẮNG!' : 'ĐỐI PHƯƠNG THẮNG!';
+            const isWhite = winner === 'white';
+            document.getElementById('winner-text').innerText = isWhite ? 'BẠN THẮNG!' : (gameState.mode === 'pve' ? 'ROBOT THẮNG!' : 'ĐỐI THỦ THẮNG!');
         }
     </script>
 </body>
